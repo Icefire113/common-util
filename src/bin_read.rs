@@ -155,3 +155,32 @@ pub fn skip<R: Read + Seek>(reader: &mut R, n: u64) -> io::Result<()> {
     reader.seek_relative(n as i64)?;
     Ok(())
 }
+
+/// Reads a byte-prefixed string, formatted as:
+/// `<len><str>`
+/// where `len` is a u8, and the next `len` bytes are a null terminated string.
+///
+/// Note that this function will check for utf-8 validity but not the presence of a null terminator (as rust does not need them)
+pub fn read_bzstring<R: Read>(reader: &mut R) -> Result<String, UtilReadError> {
+    let len: u8 = read_u8_le(reader)?;
+    let mut buff = vec![0u8; len as usize];
+    reader.read_exact(&mut buff)?;
+
+    if buff.pop() != Some(b'\0') {
+        return Err(UtilReadError::ExpectedNullTerminator);
+    }
+    Ok(String::from_utf8(buff)?)
+}
+
+/// Reads a byte-prefixed string, formatted as:
+/// `<len><str>`
+/// where `len` is a u8, and the next `len` bytes are a string.
+///
+/// Note that this function will check for utf-8 validity
+pub fn read_bstring<R: Read>(reader: &mut R) -> Result<String, UtilReadError> {
+    let len: u8 = read_u8_le(reader)?;
+    let mut buff = vec![0u8; len as usize];
+    reader.read_exact(&mut buff)?;
+
+    Ok(String::from_utf8(buff)?)
+}
